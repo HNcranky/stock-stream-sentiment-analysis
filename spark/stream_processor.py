@@ -3,16 +3,15 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, from_json, col, from_unixtime, avg, current_timestamp, lit, to_timestamp
 from pyspark.sql.types import StringType, StructType, StructField, IntegerType, BooleanType, FloatType
 import uuid
+from utils import hf_predict
 
-analyzer = SentimentIntensityAnalyzer()
+sentiment_schema = StructType([
+    StructField("pred_label", StringType(), True),
+    StructField("pred_score", FloatType(), True)
+])
 
-def analyze_sentiment(text):
-    if text is None:
-        return 0.0
-    sentiment = analyzer.polarity_scores(text)
-    return sentiment['compound']
+sentiment_udf = udf(hf_predict, sentiment_schema)
 
-sentiment_udf = udf(analyze_sentiment, FloatType())
 
 def make_uuid():
     return udf(lambda: str(uuid.uuid1()), StringType())()
@@ -61,9 +60,10 @@ output_df = parsed_df.select(
     .withColumn("ingest_timestamp", current_timestamp())
 
 # adding sentiment score
-output_df = output_df.filter(col("text").isNotNull()).withColumn(
-    'sentiment_score', sentiment_udf(output_df['text'])
-)
+output_df = output_df.filter(col("text").isNotNull()) \
+    .withColumn("sentiment", sentiment_udf(col("text"))) \
+    .withColumn("pred_label", col("sentiment.pred_label")) \
+    .withColumn("sentiment_score", col("sentiment.pred_score"))
 
 # https://stackoverflow.com/questions/64922560/pyspark-and-kafka-set-are-gone-some-data-may-have-been-missed
 # adding failOnDataLoss as the checkpoint change with kafka brokers going down
