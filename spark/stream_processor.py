@@ -4,11 +4,11 @@ from pyspark.sql.functions import udf, from_json, col, from_unixtime, avg, curre
 from pyspark.sql.types import StringType, StructType, StructField, IntegerType, BooleanType, FloatType
 import uuid
 
+analyzer = SentimentIntensityAnalyzer()
 
 def analyze_sentiment(text):
     if text is None:
         return 0.0
-    analyzer = SentimentIntensityAnalyzer()
     sentiment = analyzer.polarity_scores(text)
     return sentiment['compound']
 
@@ -75,15 +75,16 @@ output_df.writeStream \
     .start()
 
 # Group by the fixed "stocks" topic to calculate moving average
-summary_df = output_df.withWatermark("ingest_timestamp", "1 minute").groupBy("topic") \
-    .agg(avg("sentiment_score").alias("sentiment_score_avg")) \
-    .withColumn("uuid", make_uuid()) \
-    .withColumn("ingest_timestamp", current_timestamp())
+summary_df = output_df \
+    .withWatermark("ingest_timestamp", "1 minute") \
+    .groupBy(window("ingest_timestamp", "1 minute"), "topic") \
+    .agg(avg("sentiment_score").alias("sentiment_score_avg"))
 
-summary_df.writeStream.trigger(processingTime="5 seconds") \
+
+summary_df.writeStream.option("checkpointLocation", "/tmp/check_point_summary/") \
+    .trigger(processingTime="5 seconds") \
     .foreachBatch(
         lambda batchDF, batchID: batchDF.write.format("org.apache.spark.sql.cassandra") \
-            .option("checkpointLocation", "/tmp/check_point_summary/") \
             .options(table="topic_sentiment_avg", keyspace="twitter") \
             .mode("append").save()
     ).outputMode("update").start()
