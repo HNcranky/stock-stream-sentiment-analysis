@@ -57,20 +57,32 @@ resource "kubernetes_deployment" "spark" {
         service_account_name = kubernetes_service_account.spark.metadata.0.name
         container {
           name  = "spark"
-          image = "binhlengoc/spark-stream-processor:latest"
+          image = "binhlengoc/spark-stream-processor:v2.1-advanced"
           image_pull_policy = "IfNotPresent"
           args = [
             "/opt/spark/bin/spark-submit",
             "--conf",
-            "spark.driver.extraJavaOptions=-Divy.cache.dir=/tmp -Divy.home=/tmp",
+            "spark.driver.extraJavaOptions=-Divy.cache.dir=/opt/spark-jars -Divy.home=/opt/spark-jars",
             "--packages",
-            "org.apache.spark:spark-streaming-kafka-0-10_2.12:3.3.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0",
+            "org.apache.spark:spark-streaming-kafka-0-10_2.12:3.4.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,com.datastax.spark:spark-cassandra-connector_2.12:3.2.0,org.apache.hadoop:hadoop-aws:3.3.2,com.amazonaws:aws-java-sdk-bundle:1.12.262",
             "/src/stream_processor.py" # Path inside the container
           ]
           volume_mount {
             name       = "spark-cm"
             mount_path = "/src/stream_processor.py"
             sub_path   = "stream_processor.py"
+          }
+          
+          # Resource limits for handling multiple concurrent streaming queries
+          resources {
+            limits = {
+              cpu    = "2"
+              memory = "6Gi"
+            }
+            requests = {
+              cpu    = "1"
+              memory = "3Gi"
+            }
           }
         }
         volume {

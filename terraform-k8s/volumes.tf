@@ -60,7 +60,7 @@ resource "kubernetes_persistent_volume" "cassandravolume" {
     persistent_volume_reclaim_policy = "Retain"
     persistent_volume_source {
       host_path {
-        path = "/var/lib/minikube/pv0002/"
+        path = "/var/lib/minikube/pv0002_reset_v2/"
       }
     }
   }
@@ -84,6 +84,52 @@ resource "kubernetes_persistent_volume_claim" "cassandravolume" {
     resources {
       requests = {
         storage = "1Gi"
+      }
+    }
+  }
+}
+
+# producer
+resource "kubernetes_persistent_volume" "producervolume" {
+  metadata {
+    name = "producervolume"
+  }
+  depends_on = [
+        kubernetes_namespace.pipeline-namespace
+  ]
+  spec {
+    capacity = {
+      storage = "100Mi"
+    }
+    access_modes = ["ReadWriteMany"]
+    storage_class_name = "hostpath"
+    persistent_volume_reclaim_policy = "Retain"
+    persistent_volume_source {
+      host_path {
+        path = "/var/lib/minikube/pv0003/"
+      }
+    }
+  }
+}
+
+resource "kubernetes_persistent_volume_claim" "producervolume" {
+  metadata {
+    name = "producervolume"
+    namespace = kubernetes_namespace.pipeline-namespace.metadata.0.name
+    labels = {
+      "k8s.service" = "producervolume"
+    }
+  }
+
+  depends_on = [ kubernetes_namespace.pipeline-namespace ]
+
+  spec {
+    access_modes = ["ReadWriteMany"]
+    storage_class_name = "hostpath"
+
+    resources {
+      requests = {
+        storage = "100Mi"
       }
     }
   }

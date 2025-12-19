@@ -20,8 +20,90 @@
   "graphTooltip": 0,
   "id": 2,
   "links": [],
-  "liveNow": false,
+  "liveNow": true,
   "panels": [
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "Yc87Z6OJ4wsv"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 1,
+          "min": -1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#FF4136",
+                "value": -1
+              },
+              {
+                "color": "#FF851B",
+                "value": -0.5
+              },
+              {
+                "color": "#FFDC00",
+                "value": -0.05
+              },
+              {
+                "color": "#2ECC40",
+                "value": 0.05
+              },
+              {
+                "color": "#01FF70",
+                "value": 0.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "sentiment_score_avg",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, sentiment_score_avg, topic FROM twitter.topic_sentiment_avg WHERE topic = '$topic' ORDER BY ingest_timestamp DESC LIMIT 1 ALLOW FILTERING;"
+        }
+      ],
+      "title": "Fear & Greed Index (Latest)",
+      "type": "gauge"
+    },
     {
       "datasource": {
         "type": "hadesarchitect-cassandra-datasource",
@@ -35,28 +117,25 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "series",
-            "axisLabel": "Sentiment Score",
+            "axisLabel": "Tweet Count",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "scheme",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1.5,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
-            "spanNulls": false,
+            "showPoints": "never",
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -72,23 +151,262 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Bullish.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Bullish 🐂"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Bearish.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Bearish 🐻"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Neutral.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Neutral 😐"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
-        "x": 0,
+        "h": 8,
+        "w": 12,
+        "x": 12,
         "y": 0
       },
-      "id": 1,
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "bullish_count",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, bullish_count, topic as \"Bullish\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+        },
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "bearish_count",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "hide": false,
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "B",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, bearish_count, topic as \"Bearish\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+        },
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "neutral_count",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "hide": false,
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "C",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, neutral_count, topic as \"Neutral\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+        }
+      ],
+      "title": "Momentum: Bulls vs Bears (Battlefield)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "Yc87Z6OJ4wsv"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "series",
+            "axisLabel": "Market Volume",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Bullish.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Bullish 🐂"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Bearish.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Bearish 🐻"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Neutral.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Neutral 😐"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
       "options": {
         "legend": {
           "calcs": [],
@@ -101,11 +419,44 @@
           "sort": "none"
         }
       },
+      "pluginVersion": "9.5.2",
       "targets": [
         {
           "columnId": "topic",
           "columnTime": "ingest_timestamp",
-          "columnValue": "sentiment_score_avg",
+          "columnValue": "neutral_count",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "hide": false,
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, neutral_count, topic as \"Neutral\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+        },
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "bearish_count",
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "Yc87Z6OJ4wsv"
+          },
+          "hide": false,
+          "keyspace": "twitter",
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "B",
+          "table": "topic_sentiment_avg",
+          "target": "SELECT ingest_timestamp, bearish_count, topic as \"Bearish\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+        },
+        {
+          "columnId": "topic",
+          "columnTime": "ingest_timestamp",
+          "columnValue": "bullish_count",
           "datasource": {
             "type": "hadesarchitect-cassandra-datasource",
             "uid": "Yc87Z6OJ4wsv"
@@ -113,12 +464,12 @@
           "keyspace": "twitter",
           "queryType": "query",
           "rawQuery": true,
-          "refId": "A",
+          "refId": "C",
           "table": "topic_sentiment_avg",
-          "target": "SELECT ingest_timestamp, sentiment_score_avg, topic FROM twitter.topic_sentiment_avg WHERE topic = 'stocks' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
+          "target": "SELECT ingest_timestamp, bullish_count, topic as \"Bullish\" FROM twitter.topic_sentiment_avg WHERE topic = '$topic' AND ingest_timestamp > $__timeFrom AND ingest_timestamp < $__timeTo ALLOW FILTERING;"
         }
       ],
-      "title": "Stock Market Tweet Sentiment",
+      "title": "Market Composition (Stacked Area Stream)",
       "type": "timeseries"
     }
   ],
@@ -127,7 +478,28 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "stocks",
+          "value": "stocks"
+        },
+        "hide": 0,
+        "label": "Topic",
+        "name": "topic",
+        "options": [
+          {
+            "selected": true,
+            "text": "stocks",
+            "value": "stocks"
+          }
+        ],
+        "query": "stocks",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-15m",
@@ -135,7 +507,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Tweet Sentiment Analysis",
+  "title": "Market Sentiment & Momentum",
   "uid": "ee5399a3-330e-4108-9b56-0dd01d9270b2",
-  "version": 2
+  "version": 8
 }
