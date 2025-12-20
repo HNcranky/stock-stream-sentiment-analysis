@@ -27,6 +27,7 @@ from pyspark.sql.functions import udf, from_json, col, avg, count, sum, when, cu
 from pyspark.sql.types import StringType, StructType, StructField, FloatType, DoubleType, LongType, TimestampType
 import uuid
 import re
+from utils import hf_predict
 
 # ==============================================================================
 # 1. SETUP & CONFIGURATION
@@ -34,21 +35,16 @@ import re
 
 
 # UDFs
-_analyzer = None
 
-def analyze_sentiment(text):
-    global _analyzer
-    if text is None:
-        return 0.0
-    if _analyzer is None:
-        _analyzer = SentimentIntensityAnalyzer()
-    sentiment = _analyzer.polarity_scores(text)
-    return sentiment['compound']
+sentiment_schema = StructType([
+    StructField("pred_label", StringType(), True),
+    StructField("pred_score", FloatType(), True)
+])
 
 def make_uuid():
     return str(uuid.uuid1())
 
-sentiment_udf = udf(analyze_sentiment, FloatType())
+sentiment_udf = udf(hf_predict, sentiment_schema)
 make_uuid_udf = udf(make_uuid, StringType())
 
 # Schemas
@@ -111,13 +107,17 @@ parsed_tweets = tweets_stream.select(
 processed_tweets = parsed_tweets \
     .withColumn("api_timestamp", to_timestamp(col("created_at"))) \
     .withColumn("symbol", regexp_extract(col("text"), r'\$([A-Z]+)', 1)) \
-    .withColumn("sentiment_score", lit(0.0)) \
+    .withColumn("sentiment", sentiment_udf(col("text"))) \
+    .withColumn("sentiment_label", col("sentiment.pred_label")) \
+    .withColumn("sentiment_score", col("sentiment.pred_score")) \
     .withColumn("uuid", expr("uuid()")) \
     .withColumn("id", expr("uuid()")) \
     .withColumn("ingest_timestamp", current_timestamp()) \
     .withColumn("topic", col("symbol")) \
     .withColumn("author", lit("twitter_user")) \
+    .drop("sentiment") \
     .filter((col("symbol") != "") & (col("symbol").isNotNull()))
+
 
 enriched_tweets = processed_tweets
 
